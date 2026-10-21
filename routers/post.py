@@ -12,7 +12,9 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[schemas.PostOut])
-def get_posts(db: Session = Depends(get_db),limit:int=10,skip:int=0,search: str = ""):
+def get_posts(db: Session = Depends(get_db), limit: int = 10, skip: int = 0,
+              search: str = "",
+              current_user: models.User = Depends(oauth2.get_current_user)):
 
     results = db.query(
         models.Post, 
@@ -33,13 +35,13 @@ def get_posts(db: Session = Depends(get_db),limit:int=10,skip:int=0,search: str 
         
     return results  
 
-@router.post("/",status_code=status.HTTP_201_CREATED, response_model=schemas.PostOut)
+@router.post("/",status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_post(post_data: schemas.PostCreate,current_user: models.User = Depends(oauth2.get_current_user), db: Session = Depends(get_db)):
     new_post = models.Post(owner_id=current_user.id, **post_data.model_dump())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return {"Post": post_data.model_dump(), "votes": 0}
+    return new_post
 
 @router.get("/latest")
 def get_latest_post(db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
@@ -50,7 +52,7 @@ def get_latest_post(db: Session = Depends(get_db),current_user: models.User = De
     )
     return latest_post
 
-@router.delete("/{id}", response_model=schemas.Post)
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def delete_post(id: int, db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if post is None:
@@ -65,7 +67,7 @@ def delete_post(id: int, db: Session = Depends(get_db),current_user: models.User
         )
     db.delete(post)
     db.commit()
-    return post
+    return None
 
 @router.put("/{id}", response_model=schemas.Post)
 def update_post(id: int, post_data: schemas.PostCreate , db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
@@ -87,7 +89,7 @@ def update_post(id: int, post_data: schemas.PostCreate , db: Session = Depends(g
     db.refresh(post)
     return post
 
-@router.get("/{id}",response_model=schemas.Post)
+@router.get("/{id}", response_model=schemas.PostOut)
 def get_post(id: int, db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if post is None:
@@ -95,4 +97,7 @@ def get_post(id: int, db: Session = Depends(get_db),current_user: models.User = 
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {id} not found",
         )
-    return post
+    votes = db.query(func.count(models.Vote.post_id)).filter(
+        models.Vote.post_id == id
+    ).scalar()
+    return {"Post": post, "votes": votes}

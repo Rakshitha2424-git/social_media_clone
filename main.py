@@ -2,11 +2,8 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-import models
-from database import engine, get_db
 from routers import vote,auth,post,user
 import oauth2
-models.Base.metadata.create_all(bind=engine)
 
 origins=["https://www.google.com", "https://google.com"]
 

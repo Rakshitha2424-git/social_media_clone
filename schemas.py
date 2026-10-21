@@ -10,11 +10,7 @@ class PostBase(BaseModel):
     
 class PostCreate(PostBase):
     pass
-class PostOut(BaseModel):
-    Post : PostBase
-    votes: int
-    model_config = ConfigDict(from_attributes=True)
-    
+
 class UserOut(BaseModel):
     id: int
     email: EmailStr
@@ -27,7 +23,12 @@ class Post(PostBase):
     owner_id: int
     owner: UserOut
     model_config = ConfigDict(from_attributes=True)
-    
+
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
+    model_config = ConfigDict(from_attributes=True)
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str

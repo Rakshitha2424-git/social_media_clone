@@ -1,0 +1,11 @@
+@"
+myvenv/
+.venv-fresh/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+.git/
+.vscode/
+"@ | Set-Content -Encoding ascii .dockerignore
