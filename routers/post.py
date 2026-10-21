@@ -1,59 +1,74 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from database import get_db
-import oauth2
-from sqlalchemy import func
-import schemas,utils,models,oauth2
-from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
 
-router = APIRouter(
-    prefix="/posts",tags=["Posts"]
-)
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from database import get_db
+import models
+import oauth2
+import schemas
+
+router = APIRouter(prefix="/posts", tags=["Posts"])
+
 
 @router.get("/", response_model=List[schemas.PostOut])
-def get_posts(db: Session = Depends(get_db), limit: int = 10, skip: int = 0,
-              search: str = "",
-              current_user: models.User = Depends(oauth2.get_current_user)):
+def get_posts(
+    db: Session = Depends(get_db),
+    limit: int = 10,
+    skip: int = 0,
+    search: str = "",
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
+    return (
+        db.query(
+            models.Post,
+            func.count(models.Vote.post_id).label("votes"),
+        )
+        .join(
+            models.Vote,
+            models.Vote.post_id == models.Post.id,
+            isouter=True,
+        )
+        .filter(models.Post.title.contains(search))
+        .group_by(models.Post.id)
+        .limit(limit)
+        .offset(skip)
+        .all()
+    )
 
-    results = db.query(
-        models.Post, 
-        func.count(models.Vote.post_id).label("votes")
-    ).join(
-        models.Vote, 
-        models.Vote.post_id == models.Post.id, 
-        isouter=True  # LEFT JOIN so posts with 0 votes still show up
-    ).filter(
-        models.Post.title.contains(search)  # 2. Apply your search filter
-    ).group_by(
-        models.Post.id  # 3. Group by post so the count works correctly per post
-    ).limit(
-        limit  # 4. Apply pagination limit
-    ).offset(
-        skip   # 5. Apply pagination offset/skip
-    ).all()
-        
-    return results  
 
-@router.post("/",status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def create_post(post_data: schemas.PostCreate,current_user: models.User = Depends(oauth2.get_current_user), db: Session = Depends(get_db)):
+@router.post(
+    "/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post
+)
+def create_post(
+    post_data: schemas.PostCreate,
+    current_user: models.User = Depends(oauth2.get_current_user),
+    db: Session = Depends(get_db),
+):
     new_post = models.Post(owner_id=current_user.id, **post_data.model_dump())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
     return new_post
 
-@router.get("/latest")
-def get_latest_post(db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
-    latest_post = (
-        db.query(models.Post)
-        .order_by(models.Post.id.desc())
-        .first()
-    )
-    return latest_post
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
-def delete_post(id: int, db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
+@router.get("/latest")
+def get_latest_post(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
+    return db.query(models.Post).order_by(models.Post.id.desc()).first()
+
+
+@router.delete(
+    "/{id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None
+)
+def delete_post(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if post is None:
         raise HTTPException(
@@ -67,10 +82,15 @@ def delete_post(id: int, db: Session = Depends(get_db),current_user: models.User
         )
     db.delete(post)
     db.commit()
-    return None
+
 
 @router.put("/{id}", response_model=schemas.Post)
-def update_post(id: int, post_data: schemas.PostCreate , db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
+def update_post(
+    id: int,
+    post_data: schemas.PostCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if post is None:
         raise HTTPException(
@@ -84,13 +104,17 @@ def update_post(id: int, post_data: schemas.PostCreate , db: Session = Depends(g
         )
     for field, value in post_data.model_dump().items():
         setattr(post, field, value)
-
     db.commit()
     db.refresh(post)
     return post
 
+
 @router.get("/{id}", response_model=schemas.PostOut)
-def get_post(id: int, db: Session = Depends(get_db),current_user: models.User = Depends(oauth2.get_current_user)):
+def get_post(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if post is None:
         raise HTTPException(
