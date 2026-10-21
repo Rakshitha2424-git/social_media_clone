@@ -1,0 +1,29 @@
+# Gather frontend
+
+React and Vite frontend for the FastAPI social media API. Deploy it as a Render
+Static Site separately from the API.
+
+## Local development
+
+In this directory, run:
+
+```powershell
+npm install
+$env:VITE_API_BASE_URL = "http://localhost:8000"
+npm run dev
+```
+
+Run the API separately with its local database and required environment settings.
+
+## Render
+
+Create a Static Site connected to this repository:
+
+- Root directory: `frontend`
+- Build command: `npm install && npm run build`
+- Publish directory: `dist`
+- Environment variable `VITE_API_BASE_URL`: the public base URL of the FastAPI service, without a trailing slash
+
+Set `CORS_ORIGINS` on the API web service to the deployed frontend's exact Render
+URL (for example, `https://your-frontend.onrender.com`). The API allows Vite's
+local development URLs by default.
