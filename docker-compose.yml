@@ -10,20 +10,21 @@ services:
       - ./:usr/src/app:ro
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     environment:
-      - DATABASE_HOSTNAME=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USERNAME=postgres
-      - DATABASE_PASSWORD=root@0987
-      - DATABASE_NAME=postgres
-      - SECRET_KEY=095e3f4b8c1d2a3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=300
+      DATABASE_HOSTNAME: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: ${DATABASE_USERNAME:?Set DATABASE_USERNAME in .env}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      DATABASE_NAME: ${DATABASE_NAME:?Set DATABASE_NAME in .env}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      ALGORITHM: ${ALGORITHM:?Set ALGORITHM in .env}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:?Set ACCESS_TOKEN_EXPIRE_MINUTES in .env}
 
   postgres:
     image: postgres:18
     environment:
-      - POSTGRES_PASSWORD=root%4009
-      - POSTGRES_DB=postgres
+      POSTGRES_USER: ${DATABASE_USERNAME:?Set DATABASE_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      POSTGRES_DB: ${DATABASE_NAME:?Set DATABASE_NAME in .env}
     ports:
       - "5432:5432"
     volumes:

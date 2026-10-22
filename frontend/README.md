@@ -3,6 +3,10 @@
 React and Vite frontend for the FastAPI social media API. Deploy it as a Render
 Static Site separately from the API.
 
+The app supports account registration and sign-in, a searchable and paginated
+feed, post creation and editing, draft publishing, voting, and deleting your
+own posts. The signed-in account is shown in the header.
+
 ## Local development
 
 In this directory, run:

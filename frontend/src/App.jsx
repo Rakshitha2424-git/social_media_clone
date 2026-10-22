@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest, getUserIdFromToken, TOKEN_KEY } from "./api.js";
 
+const PAGE_SIZE = 10;
+
 function AuthPanel({ onLogin, onRegister, busy, error }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -105,6 +107,8 @@ export default function App() {
   const [published, setPublished] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [accountEmail, setAccountEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -116,7 +120,11 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const query = new URLSearchParams({ search, limit: "50", skip: "0" });
+      const query = new URLSearchParams({
+        search,
+        limit: String(PAGE_SIZE),
+        skip: String(page * PAGE_SIZE),
+      });
       const [result, votes] = await Promise.all([
         apiRequest(`/posts/?${query}`, { token }),
         apiRequest("/vote/", { token }),
@@ -128,9 +136,25 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [search, token]);
+  }, [page, search, token]);
 
   useEffect(() => { loadFeed(); }, [loadFeed]);
+
+  useEffect(() => {
+    let active = true;
+    if (!token || !currentUserId) {
+      setAccountEmail("");
+      return () => { active = false; };
+    }
+    apiRequest(`/users/${currentUserId}`, { token })
+      .then((user) => {
+        if (active) setAccountEmail(user.email);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message || "Unable to load your account.");
+      });
+    return () => { active = false; };
+  }, [currentUserId, token]);
 
   async function login(email, password) {
     setBusy(true);
@@ -143,8 +167,10 @@ export default function App() {
       window.localStorage.setItem(TOKEN_KEY, result.access_token);
       setToken(result.access_token);
       setNotice("Welcome back!");
+      return true;
     } catch (requestError) {
       setError(requestError.message || "Unable to sign in.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -155,8 +181,8 @@ export default function App() {
     setError("");
     try {
       await apiRequest("/users/", { method: "POST", body: JSON.stringify({ email, password }) });
-      await login(email, password);
-      setNotice("Your account is ready. Welcome!");
+      const signedIn = await login(email, password);
+      if (!signedIn) setNotice("Your account was created. Sign in to continue.");
     } catch (requestError) {
       setError(requestError.message || "Unable to create your account.");
     } finally {
@@ -169,6 +195,8 @@ export default function App() {
     setToken(null);
     setPosts([]);
     setMyVotes(new Set());
+    setPage(0);
+    setAccountEmail("");
     setError("");
     setNotice("");
   }
@@ -254,7 +282,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="/"><span>g.</span> gather</a>
-        <div className="topbar-right"><span className="online-label"><i /> Your space</span><button className="button subtle" onClick={logout} type="button">Sign out</button></div>
+        <div className="topbar-right"><span className="online-label"><i /> {accountEmail || "Your space"}</span><button className="button subtle" onClick={logout} type="button">Sign out</button></div>
       </header>
       <main className="dashboard">
         <section className="welcome-row">
@@ -265,17 +293,30 @@ export default function App() {
         {notice && <p className="notice page-alert" role="status">{notice}</p>}
         <div className="feed-layout">
           <section className="feed-column" aria-label="Community posts">
-            <form className="search-bar" onSubmit={(event) => { event.preventDefault(); setSearch(searchText.trim()); }}>
+            <form className="search-bar" onSubmit={(event) => { event.preventDefault(); setPage(0); setSearch(searchText.trim()); }}>
               <span aria-hidden="true">⌕</span>
               <input aria-label="Search posts by title" onChange={(event) => setSearchText(event.target.value)} placeholder="Find a conversation…" value={searchText} />
-              {searchText && <button className="text-button" onClick={() => { setSearchText(""); setSearch(""); }} type="button">Clear</button>}
+              {searchText && <button className="text-button" onClick={() => { setSearchText(""); setSearch(""); setPage(0); }} type="button">Clear</button>}
             </form>
-            <div className="feed-title"><h2>{search ? "Search results" : "The latest"}</h2><span>{posts.length} {posts.length === 1 ? "post" : "posts"}</span></div>
+            <div className="feed-title">
+              <h2>{search ? "Search results" : "The latest"}</h2>
+              <div className="feed-controls">
+                <span>{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
+                <button className="text-button" disabled={loading} onClick={loadFeed} type="button">Refresh</button>
+              </div>
+            </div>
             {loading ? <div className="empty-card"><span className="spinner" />Loading your feed…</div> : posts.length === 0 ? (
               <div className="empty-card"><span className="empty-icon">✳</span><h3>{search ? "No posts found" : "It’s quiet in here."}</h3><p>{search ? "Try another search or clear the filter." : "Start the conversation with the first post."}</p></div>
             ) : posts.map((post) => (
               <PostCard key={post.id} busy={busy} hasVoted={myVotes.has(post.id)} isOwner={post.owner_id === currentUserId} onDelete={deletePost} onUpdate={updatePost} onVote={vote} post={post} />
             ))}
+            {!loading && (page > 0 || posts.length === PAGE_SIZE) && (
+              <nav className="pagination" aria-label="Feed pages">
+                <button className="button subtle" disabled={loading || page === 0} onClick={() => setPage(page - 1)} type="button">Previous</button>
+                <span>Page {page + 1}</span>
+                <button className="button subtle" disabled={loading || posts.length < PAGE_SIZE} onClick={() => setPage(page + 1)} type="button">Next</button>
+              </nav>
+            )}
           </section>
           <aside className="composer-column">
             <section className="composer-card">

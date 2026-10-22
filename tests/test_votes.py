@@ -15,6 +15,13 @@ def test_vote_on_post(authorized_client, test_posts):
     assert res.status_code == 201
 
 
+def test_get_my_votes(authorized_client, test_posts, test_vote):
+    post_id = test_posts[3].id
+    res = authorized_client.get("/vote/")
+    assert res.status_code == 200
+    assert post_id in res.json()
+
+
 def test_vote_twice_post(authorized_client, test_posts, test_vote):
     res = authorized_client.post(
         "/vote/", json={"post_id": test_posts[3].id, "dir": 1})

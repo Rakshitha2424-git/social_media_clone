@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -31,7 +31,14 @@ def get_posts(
             isouter=True,
         )
         .filter(models.Post.title.contains(search))
+        .filter(
+            or_(
+                models.Post.published.is_(True),
+                models.Post.owner_id == current_user.id,
+            )
+        )
         .group_by(models.Post.id)
+        .order_by(models.Post.id.desc())
         .limit(limit)
         .offset(skip)
         .all()

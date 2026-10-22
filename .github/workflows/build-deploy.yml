@@ -88,12 +88,11 @@ jobs:
             exit 1
           fi
           curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK"
-          
       - name: deploy to ubuntu server
         run: |
             cd ~/app/src
             git pull
-            systemctl restart api
+            echo ${{}} | sudo -S systemctl restart api
       # login to our ubuntu
       # cd /app/src
       # git pull

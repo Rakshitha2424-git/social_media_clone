@@ -49,6 +49,9 @@ h1, h2, h3, p { margin-top: 0; }
 .feed-title { display: flex; align-items: baseline; justify-content: space-between; margin: 27px 2px 14px; }
 .feed-title h2 { margin: 0; font: 700 19px Manrope, sans-serif; letter-spacing: -.4px; }
 .feed-title span { color: var(--muted); font-size: 12px; }
+.feed-controls { display: flex; align-items: center; gap: 13px; }
+.pagination { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 0; }
+.pagination > span { color: var(--muted); font-size: 12px; }
 .post-card, .composer-card, .empty-card { background: var(--paper); border: 1px solid var(--line); border-radius: 15px; box-shadow: 0 5px 20px rgba(41,52,34,.025); }
 .post-card { margin-bottom: 15px; padding: 20px 22px 12px; }
 .post-heading { display: flex; align-items: center; gap: 11px; }
