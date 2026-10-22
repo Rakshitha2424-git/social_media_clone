@@ -1,6 +1,7 @@
 import pytest
 import schemas
 import models
+from routers import post as post_router
 
 
 def test_get_all_posts(authorized_client, test_posts):
@@ -51,6 +52,43 @@ def test_get_posts_only_shows_own_drafts(authorized_client, test_user, test_user
     assert res.status_code == 200
     assert own_draft["id"] in post_ids
     assert other_draft_id not in post_ids
+
+
+def test_create_post_with_multiple_media(authorized_client, tmp_path, monkeypatch):
+    monkeypatch.setattr(post_router, "MEDIA_DIRECTORY", tmp_path)
+    png_content = b"\x89PNG\r\n\x1a\nmedia"
+    webm_content = b"\x1a\x45\xdf\xa3video"
+
+    res = authorized_client.post(
+        "/posts/with-media",
+        data={"title": "A post with media", "content": "Photo and video", "published": "true"},
+        files=[
+            ("files", ("photo.png", png_content, "image/png")),
+            ("files", ("clip.webm", webm_content, "video/webm")),
+        ],
+    )
+
+    assert res.status_code == 201
+    post = schemas.Post(**res.json())
+    assert [item.media_type for item in post.media] == ["image/png", "video/webm"]
+    for item, expected_content in zip(post.media, [png_content, webm_content]):
+        media_res = authorized_client.get(f"/media/{item.id}")
+        assert media_res.status_code == 200
+        assert media_res.content == expected_content
+        assert media_res.headers["x-content-type-options"] == "nosniff"
+
+
+def test_create_post_rejects_media_with_invalid_signature(authorized_client, tmp_path, monkeypatch):
+    monkeypatch.setattr(post_router, "MEDIA_DIRECTORY", tmp_path)
+
+    res = authorized_client.post(
+        "/posts/with-media",
+        data={"title": "Invalid media", "content": "Should not be saved"},
+        files=[("files", ("photo.png", b"not an image", "image/png"))],
+    )
+
+    assert res.status_code == 400
+    assert not list(tmp_path.iterdir())
 
 
 def test_unauthorized_user_get_one_post(client, test_posts):

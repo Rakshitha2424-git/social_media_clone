@@ -6,7 +6,11 @@ export const TOKEN_KEY = "gather_access_token";
 
 export async function apiRequest(path, { token, ...options } = {}) {
   const headers = new Headers(options.headers);
-  if (options.body && !(options.body instanceof URLSearchParams)) {
+  if (
+    options.body &&
+    !(options.body instanceof URLSearchParams) &&
+    !(options.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json");
   }
   if (token) {
@@ -36,6 +40,24 @@ export async function apiRequest(path, { token, ...options } = {}) {
     throw new Error(message || `Request failed (${response.status})`);
   }
   return data;
+}
+
+export async function apiBlobRequest(path, token) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+    const detail = typeof data === "object" && data !== null ? data.detail : data;
+    throw new Error(detail || `Request failed (${response.status})`);
+  }
+  return response.blob();
 }
 
 export function getUserIdFromToken(token) {

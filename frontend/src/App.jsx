@@ -1,7 +1,59 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiRequest, getUserIdFromToken, TOKEN_KEY } from "./api.js";
+import { apiBlobRequest, apiRequest, getUserIdFromToken, TOKEN_KEY } from "./api.js";
 
 const PAGE_SIZE = 10;
+const MAX_MEDIA_PER_POST = 5;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+const EMPTY_MEDIA = [];
+
+function MediaGallery({ media, token }) {
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const objectUrls = [];
+    setItems([]);
+    setError("");
+    if (!media.length) return undefined;
+
+    Promise.all(media.map(async (item) => {
+      const blob = await apiBlobRequest(`/media/${item.id}`, token);
+      const url = URL.createObjectURL(blob);
+      objectUrls.push(url);
+      return { ...item, url };
+    }))
+      .then((loadedItems) => {
+        if (active) setItems(loadedItems);
+        else objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      })
+      .catch((requestError) => {
+        objectUrls.forEach((url) => URL.revokeObjectURL(url));
+        if (active) setError(requestError.message || "Unable to load post media.");
+      });
+
+    return () => {
+      active = false;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [media, token]);
+
+  if (error) return <p className="alert media-error" role="alert">{error}</p>;
+  if (!items.length) return media.length ? <div className="media-loading">Loading media…</div> : null;
+
+  return (
+    <div className="media-gallery">
+      {items.map((item) => item.media_type.startsWith("image/") ? (
+        <img key={item.id} alt="Post attachment" loading="lazy" src={item.url} />
+      ) : (
+        <video key={item.id} controls preload="metadata" src={item.url}>
+          Your browser does not support video playback.
+        </video>
+      ))}
+    </div>
+  );
+}
 
 function AuthPanel({ onLogin, onRegister, busy, error }) {
   const [mode, setMode] = useState("login");
@@ -47,7 +99,7 @@ function AuthPanel({ onLogin, onRegister, busy, error }) {
   );
 }
 
-function PostCard({ post, hasVoted, isOwner, onVote, onDelete, onUpdate, busy }) {
+function PostCard({ post, token, hasVoted, isOwner, onVote, onDelete, onUpdate, busy }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
@@ -85,6 +137,7 @@ function PostCard({ post, hasVoted, isOwner, onVote, onDelete, onUpdate, busy })
       ) : (
         <div className="post-body"><h2>{post.title}</h2><p>{post.content}</p></div>
       )}
+      <MediaGallery media={post.media || EMPTY_MEDIA} token={token} />
       <div className="post-actions">
         <button aria-pressed={hasVoted} className={hasVoted ? "vote-button voted" : "vote-button"} disabled={busy} onClick={() => onVote(post.id, hasVoted)} type="button">
           <span aria-hidden="true">{hasVoted ? "♥" : "♡"}</span>{post.votes} {post.votes === 1 ? "like" : "likes"}
@@ -105,6 +158,8 @@ export default function App() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [published, setPublished] = useState(true);
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaError, setMediaError] = useState("");
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -206,10 +261,17 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
-      await apiRequest("/posts/", { method: "POST", token, body: JSON.stringify({ title, content, published }) });
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("content", content);
+      formData.append("published", String(published));
+      mediaFiles.forEach((file) => formData.append("files", file));
+      await apiRequest("/posts/with-media", { method: "POST", token, body: formData });
       setTitle("");
       setContent("");
       setPublished(true);
+      setMediaFiles([]);
+      setMediaError("");
       setNotice("Your post was shared.");
       await loadFeed();
     } catch (requestError) {
@@ -308,7 +370,7 @@ export default function App() {
             {loading ? <div className="empty-card"><span className="spinner" />Loading your feed…</div> : posts.length === 0 ? (
               <div className="empty-card"><span className="empty-icon">✳</span><h3>{search ? "No posts found" : "It’s quiet in here."}</h3><p>{search ? "Try another search or clear the filter." : "Start the conversation with the first post."}</p></div>
             ) : posts.map((post) => (
-              <PostCard key={post.id} busy={busy} hasVoted={myVotes.has(post.id)} isOwner={post.owner_id === currentUserId} onDelete={deletePost} onUpdate={updatePost} onVote={vote} post={post} />
+              <PostCard key={post.id} busy={busy} hasVoted={myVotes.has(post.id)} isOwner={post.owner_id === currentUserId} onDelete={deletePost} onUpdate={updatePost} onVote={vote} post={post} token={token} />
             ))}
             {!loading && (page > 0 || posts.length === PAGE_SIZE) && (
               <nav className="pagination" aria-label="Feed pages">
@@ -324,8 +386,46 @@ export default function App() {
               <form className="stack" onSubmit={createPost}>
                 <label>Give it a title<input maxLength="200" onChange={(event) => setTitle(event.target.value)} placeholder="What’s on your mind?" required value={title} /></label>
                 <label>Write your post<textarea onChange={(event) => setContent(event.target.value)} placeholder="Share something with the community…" required rows="5" value={content} /></label>
+                <label>
+                  Add photos or videos
+                  <input
+                    accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
+                    multiple
+                    onChange={(event) => {
+                      const selection = Array.from(event.target.files || []);
+                      const invalid = selection.find((file) => {
+                        const maxSize = file.type.startsWith("video/") ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+                        return file.size > maxSize || (!file.type.startsWith("video/") && !file.type.startsWith("image/"));
+                      });
+                      if (selection.length > MAX_MEDIA_PER_POST) {
+                        setMediaError(`Choose up to ${MAX_MEDIA_PER_POST} files per post.`);
+                        setMediaFiles([]);
+                      } else if (invalid) {
+                        setMediaError(`${invalid.name} has an unsupported type or exceeds its size limit.`);
+                        setMediaFiles([]);
+                      } else {
+                        setMediaError("");
+                        setMediaFiles(selection);
+                      }
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                  <span className="field-hint">Up to 5 files. Images: 10 MB each; videos: 100 MB each.</span>
+                </label>
+                {mediaFiles.length > 0 && (
+                  <ul className="selected-media">
+                    {mediaFiles.map((file, index) => (
+                      <li key={`${file.name}-${file.lastModified}`}>
+                        <span>{file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB</span>
+                        <button className="text-button danger-text" onClick={() => setMediaFiles(mediaFiles.filter((_, itemIndex) => itemIndex !== index))} type="button">Remove</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {mediaError && <p className="alert" role="alert">{mediaError}</p>}
                 <label className="check-label"><input checked={published} onChange={(event) => setPublished(event.target.checked)} type="checkbox" /> Publish this post</label>
-                <button className="button primary full" disabled={busy} type="submit">{busy ? "Posting…" : "Share with everyone"}</button>
+                <button className="button primary full" disabled={busy || Boolean(mediaError)} type="submit">{busy ? "Posting…" : "Share with everyone"}</button>
               </form>
               <p className="composer-footnote">Be thoughtful. Be you. Keep it kind.</p>
             </section>

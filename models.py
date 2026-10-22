@@ -1,6 +1,5 @@
-from sqlalchemy import Integer, Column, Integer, String, Boolean, text,ForeignKey
+from sqlalchemy import Integer, Column, String, Boolean, text, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import null
 from database import Base
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
@@ -13,7 +12,8 @@ class Post(Base):
     published = Column(Boolean, server_default='TRUE', nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'), nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    owner=relationship("User")
+    owner = relationship("User")
+    media = relationship("PostMedia", cascade="all, delete-orphan", order_by="PostMedia.id")
 
 class User(Base):
     __tablename__ = "users"
@@ -29,3 +29,13 @@ class Vote(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
+
+
+class PostMedia(Base):
+    __tablename__ = "post_media"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
+    stored_name = Column(String, nullable=False, unique=True)
+    media_type = Column(String, nullable=False)
+    post = relationship("Post", back_populates="media")

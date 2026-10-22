@@ -17,11 +17,17 @@ class UserOut(BaseModel):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class PostMediaOut(BaseModel):
+    id: int
+    media_type: str
+    model_config = ConfigDict(from_attributes=True)
+
 class Post(PostBase):
     id: int
     created_at: datetime
     owner_id: int
     owner: UserOut
+    media: list[PostMediaOut] = Field(default_factory=list)
     model_config = ConfigDict(from_attributes=True)
 
 class PostOut(BaseModel):

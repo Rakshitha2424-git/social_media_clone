@@ -66,6 +66,13 @@ h1, h2, h3, p { margin-top: 0; }
 .post-body { padding: 15px 0 12px; }
 .post-body h2 { margin: 0 0 8px; font: 700 17px Manrope, sans-serif; letter-spacing: -.3px; }
 .post-body p { margin: 0; color: #646b60; font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.media-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin: 0 0 14px; }
+.media-gallery img, .media-gallery video { display: block; width: 100%; max-height: 440px; border-radius: 10px; background: #f2f3ee; object-fit: contain; }
+.media-loading { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
+.media-error { margin: 0 0 14px; }
+.selected-media { display: grid; gap: 6px; margin: -5px 0 0; padding: 0; list-style: none; }
+.selected-media li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 8px; background: #f7f8f4; color: #646b60; font-size: 11px; }
+.selected-media li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .post-actions { display: flex; align-items: center; border-top: 1px solid #f0f0eb; padding-top: 9px; }
 .vote-button { display: inline-flex; align-items: center; gap: 7px; padding: 5px 8px; border: 0; border-radius: 7px; background: transparent; color: #777e73; font-size: 12px; }
 .vote-button span { color: #879184; font-size: 17px; }
@@ -78,6 +85,7 @@ h1, h2, h3, p { margin-top: 0; }
 .composer-heading h2 { margin: 0; font: 700 16px Manrope, sans-serif; }
 .stack { display: grid; gap: 15px; }
 .stack label { display: grid; gap: 7px; color: #555d51; font-size: 12px; font-weight: 600; }
+.field-hint { color: var(--muted); font-size: 10px; font-weight: 400; }
 .stack input:not([type="checkbox"]), .stack textarea { width: 100%; padding: 11px 12px; border: 1px solid #e6e8df; border-radius: 9px; outline: 0; background: #fdfdfb; color: var(--ink); font-size: 13px; font-weight: 400; transition: border-color .15s, box-shadow .15s; }
 .stack textarea { min-height: 110px; resize: vertical; line-height: 1.55; }
 .stack input:focus, .stack textarea:focus { border-color: #8da38b; box-shadow: 0 0 0 3px rgba(69,107,78,.1); }
