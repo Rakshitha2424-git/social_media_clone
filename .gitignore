@@ -4,3 +4,8 @@ myvenv/
 frontend/node_modules/
 frontend/dist/
 uploads/
+.venv*/
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.vercel/
+app/uploads/

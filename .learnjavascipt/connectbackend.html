@@ -1,0 +1,20 @@
+<button id="loadPosts">Load Posts</button>
+<div id="posts"></div>
+
+<script>
+    document.getElementById("loadPosts")
+        .addEventListener("click", async () => {
+            const response = await fetch(
+                "http://localhost:8000/posts"
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load posts");
+            }
+
+            const posts = await response.json();
+
+            document.getElementById("posts").textContent =
+                JSON.stringify(posts);
+        });
+</script>

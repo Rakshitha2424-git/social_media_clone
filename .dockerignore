@@ -1,11 +1,11 @@
-@"
+.git/
+.venv*/
 myvenv/
-.venv-fresh/
-.venv/
 venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .env
-.git/
-.vscode/
-"@ | Set-Content -Encoding ascii .dockerignore
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.vercel/
+app/uploads/
