@@ -12,17 +12,15 @@ app = FastAPI()
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://www.google.com",
-    "https://google.com",
-    "https://frontend-eight-eta-39.vercel.app"
+    "https://frontend-eight-eta-39.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_headers=["*"],
     allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
