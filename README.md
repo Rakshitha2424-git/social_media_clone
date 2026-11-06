@@ -126,7 +126,7 @@ Create a local `.env` file using the variable names expected by the backend conf
 
 ```dotenv
 DATABASE_HOSTNAME=localhost
-DATABASE_PORT=5432
+DATABASE_PORT=5435
 DATABASE_USERNAME=your_database_user
 DATABASE_PASSWORD=your_database_password
 DATABASE_NAME=your_database_name
@@ -152,7 +152,7 @@ alembic -c app/alembic.ini upgrade head
 Start FastAPI:
 
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn main:app --reload
 ```
 
 ### Start the frontend
