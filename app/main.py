@@ -14,7 +14,7 @@ origins = [
     "http://127.0.0.1:5173",
     "https://www.google.com",
     "https://google.com",
-    "https://frontend-eight-eta-39.vercel.app/"
+    "https://frontend-eight-eta-39.vercel.app"
 ]
 
 app.add_middleware(
