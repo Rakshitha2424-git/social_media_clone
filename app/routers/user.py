@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-import models as models
+import models 
 import schemas as schemas
 import utils as utils
 

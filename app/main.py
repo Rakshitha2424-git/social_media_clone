@@ -19,7 +19,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_headers=["*"],
     allow_methods=["*"],
-    
 )
 
 app.include_router(post.router)
