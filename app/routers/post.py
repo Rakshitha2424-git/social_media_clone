@@ -10,7 +10,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from  database import get_db
-import models 
+import models as models
 import oauth2 as oauth2
 import schemas as schemas
 

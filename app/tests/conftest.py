@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from config import settings
 from database import get_db, Base
 from oauth2 import create_access_token
-import models
+import app.models as models
 
 SQLALCHEMY_DATABASE_URL = f"postgresql+psycopg://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}_test"
 

@@ -2,7 +2,6 @@ from sqlalchemy import Integer, Column, String, Boolean, text, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 from sqlalchemy.sql.sqltypes import TIMESTAMP
-
 class Post(Base):
     __tablename__ = "posts"
 
