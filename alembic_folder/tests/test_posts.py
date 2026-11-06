@@ -1,6 +1,6 @@
 import pytest
 import app.schemas as schemas
-import app.models as models
+import models
 from routers import post as post_router
 
 
